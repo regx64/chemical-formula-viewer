@@ -201,8 +201,8 @@ function classify(r: ReactionSpecies[], p: ReactionSpecies[], reversible: boolea
   if (reversible) return 'Equilibrium';
   if (r.length === 1 && p.length > 1) return 'Decomposition';
   if (r.length > 1 && p.length === 1) return 'Synthesis';
-  const ionic = (list: ReactionSpecies[]) => list.every((s) => s.molecule.bonds.some((b) => b.order === 0));
-  if (r.length === 2 && p.length === 2 && ionic(r) && ionic(p)) return 'Double displacement';
+  const element = (sp: ReactionSpecies) => Object.keys(sp.composition).length === 1;
+  if (r.length === 2 && p.length === 2) return r.some(element) && p.some(element) ? 'Single displacement' : 'Double displacement';
   return 'Reaction';
 }
 

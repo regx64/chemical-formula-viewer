@@ -62,21 +62,19 @@ function libraryIndex(): IndexedEntry[] {
 
 const cache = new Map<string, Molecule>();
 
-/** Centre a highly symmetric cluster and tilt it so lattice rows don't hide behind each other. */
+const RY = (-32 * Math.PI) / 180;
+const RX = (22 * Math.PI) / 180;
+const [CY, SY, CX, SX] = [Math.cos(RY), Math.sin(RY), Math.cos(RX), Math.sin(RX)];
+
+/** Centre a cubic lattice and tilt it so rows of ions don't hide behind each other. */
 function obliqueView(mol: Molecule): Molecule {
-  const n = mol.atoms.length;
-  const c = mol.atoms.reduce((acc, a) => [acc[0] + a.x / n, acc[1] + a.y / n, acc[2] + a.z / n], [0, 0, 0]);
-  const ry = (-32 * Math.PI) / 180;
-  const rx = (22 * Math.PI) / 180;
+  const centred = orientPrincipal(mol); // centring; PCA is degenerate for cubic clusters so axes stay aligned
   return {
-    ...mol,
-    atoms: mol.atoms.map((a) => {
-      const x0 = a.x - c[0];
-      const y0 = a.y - c[1];
-      const z0 = a.z - c[2];
-      const x1 = x0 * Math.cos(ry) + z0 * Math.sin(ry);
-      const z1 = -x0 * Math.sin(ry) + z0 * Math.cos(ry);
-      return { ...a, x: x1, y: y0 * Math.cos(rx) - z1 * Math.sin(rx), z: y0 * Math.sin(rx) + z1 * Math.cos(rx) };
+    ...centred,
+    atoms: centred.atoms.map((a) => {
+      const x1 = a.x * CY + a.z * SY;
+      const z1 = -a.x * SY + a.z * CY;
+      return { ...a, x: x1, y: a.y * CX - z1 * SX, z: a.y * SX + z1 * CX };
     }),
   };
 }
@@ -85,7 +83,9 @@ export function libraryMolecule(entry: LibraryEntry): Molecule {
   const hit = cache.get(entry.name);
   if (hit) return hit;
   const mol = entry.special
-    ? obliqueView(specialStructure(entry.special))
+    ? entry.special === 'nacl' || entry.special === 'diamond'
+      ? obliqueView(specialStructure(entry.special))
+      : orientPrincipal(specialStructure(entry.special))
     : embed(parseSmiles(entry.smiles!), { seed: entry.name.length * 97 });
   const out = { ...mol, name: entry.name, source: 'library' as const };
   cache.set(entry.name, out);
@@ -234,7 +234,11 @@ export function generated(composition: Composition, charge: number): Resolved | 
   const total = Object.values(composition).reduce((a, b) => a + b, 0);
   if (total > 400) return { error: 'That formula is too large to build without a database structure.' };
   const built = buildFromComposition(composition, charge, parseSmiles);
-  const mol = built.hasCoordinates ? orientPrincipal(built.mol) : embed(built.mol, { attempts: total > 60 ? 1 : 3 });
+  const mol = built.kind === 'metal'
+    ? obliqueView(built.mol)
+    : built.hasCoordinates
+      ? orientPrincipal(built.mol)
+      : embed(built.mol, { attempts: total > 60 ? 1 : 3 });
   const kindLabel =
     built.kind === 'ionic'
       ? 'Ionic formula unit'

@@ -94,3 +94,32 @@ describe('buildReaction', () => {
     expect(r.reaction.thermo.method).not.toBe('none');
   });
 });
+
+describe('classification and errors', () => {
+  it('labels reaction types from presets and compositions', () => {
+    const t = (eq: string) => {
+      const r = buildReaction(eq);
+      if (!r.ok) throw new Error(r.error);
+      return r.reaction.type;
+    };
+    expect(t('AgNO3 + NaCl -> AgCl + NaNO3')).toBe('Precipitation');
+    expect(t('HCl + NaOH -> NaCl + H2O')).toBe('Double displacement');
+    expect(t('Zn + 2HCl -> ZnCl2 + H2')).toBe('Single displacement');
+    expect(t('2H2O2 -> 2H2O + O2')).toBe('Decomposition');
+  });
+  it('keeps specific parse errors and friendly name errors', () => {
+    const e = (eq: string) => {
+      const r = buildReaction(eq);
+      if (r.ok) throw new Error('expected failure');
+      return r.error;
+    };
+    expect(e('Fe2(SO4 3 + Zn')).toMatch(/Unclosed|bracket/i);
+    expect(e('morphine + O2')).toMatch(/known compound name/);
+  });
+  it('trims state symbols from species text', () => {
+    const r = buildReaction('NaCl (aq) + AgNO3 (aq) -> AgCl (s) + NaNO3 (aq)');
+    if (!r.ok) throw new Error(r.error);
+    expect(r.reaction.reactants[0].text).toBe('NaCl');
+    expect(r.reaction.products[0].state).toBe('s');
+  });
+});

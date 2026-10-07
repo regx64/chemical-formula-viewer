@@ -53,7 +53,7 @@ export function parseSpecies(raw: string): SpeciesInput {
   }
   try {
     const parsed = parseFormula(s);
-    return { text: s.replace(/\((s|l|g|aq)\)\s*$/i, ''), coefficient, parsed };
+    return { text: s.replace(/\((s|l|g|aq)\)\s*$/i, '').trim(), coefficient, parsed };
   } catch (e) {
     // maybe a name: "methane", "ethanol (l)"
     const state = s.match(/\((s|l|g|aq)\)\s*$/i)?.[1]?.toLowerCase() as ParsedFormula['state'];
@@ -64,9 +64,11 @@ export function parseSpecies(raw: string): SpeciesInput {
       const text = hillFormula(composition, charge);
       return { text, coefficient, parsed: { text, composition, charge, state }, name: entry.name };
     }
-    if (/^[a-z]/.test(nameText) || /\s/.test(nameText))
+    if (!(e instanceof FormulaError)) throw e;
+    // a plain word that isn't in the library reads better as a naming problem than a parse error
+    if (/^[a-z][a-z\s'-]*$/i.test(nameText) && /[a-z]{3}/.test(nameText))
       throw new EquationError(`“${nameText}” isn’t a formula or a known compound name — try its formula, e.g. C2H5OH.`);
-    throw new EquationError(e instanceof FormulaError ? e.message : `Could not read “${raw}”`);
+    throw new EquationError(e.message);
   }
 }
 

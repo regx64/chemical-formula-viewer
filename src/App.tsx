@@ -8,68 +8,86 @@ import { ReactionMode } from './ui/reaction/ReactionMode';
 
 interface HashState {
   mode: Mode;
-  molecule: string;
-  reaction: string;
+  molecule: string | null;
+  reaction: string | null;
 }
 
-const DEFAULTS: HashState = { mode: 'molecule', molecule: 'Caffeine', reaction: 'CH4 + 2O2 -> CO2 + 2H2O' };
+const DEFAULTS = { molecule: 'Caffeine', reaction: 'CH4 + 2O2 -> CO2 + 2H2O' };
 
 function readHash(): HashState {
   const p = new URLSearchParams(window.location.hash.slice(1));
   const m = p.get('m');
   const r = p.get('r');
-  return {
-    mode: r && !m ? 'reaction' : p.get('mode') === 'reaction' ? 'reaction' : DEFAULTS.mode,
-    molecule: m ?? DEFAULTS.molecule,
-    reaction: r ?? DEFAULTS.reaction,
-  };
+  return { mode: r && !m ? 'reaction' : p.get('mode') === 'reaction' ? 'reaction' : 'molecule', molecule: m, reaction: r };
 }
 
-function writeHash(s: HashState) {
+function hashFor(mode: Mode, molecule: string, reaction: string): string {
   const p = new URLSearchParams();
-  if (s.mode === 'reaction') p.set('r', s.reaction);
-  else p.set('m', s.molecule);
-  const next = '#' + p.toString();
-  if (window.location.hash !== next) history.replaceState(null, '', next);
+  if (mode === 'reaction') p.set('r', reaction);
+  else p.set('m', molecule);
+  return '#' + p.toString();
 }
+
+type Request = { q: string; n: number } | null;
+const bump = (q: string) => (r: Request) => ({ q, n: (r?.n ?? 0) + 1 });
 
 export default function App() {
   const initial = useRef(readHash());
   const [mode, setMode] = useState<Mode>(initial.current.mode);
-  const [molecule, setMolecule] = useState(initial.current.molecule);
-  const [reaction, setReaction] = useState(initial.current.reaction);
+  const [molecule, setMolecule] = useState(initial.current.molecule ?? DEFAULTS.molecule);
+  const [reaction, setReaction] = useState(initial.current.reaction ?? DEFAULTS.reaction);
   const [stage, setStage] = useState<Stage | null>(null);
   const [overlay, setOverlay] = useState<HTMLDivElement | null>(null);
   const [library, setLibrary] = useState(false);
-  const [request, setRequest] = useState<{ q: string; n: number } | null>(null);
-  const [reactionRequest, setReactionRequest] = useState<{ q: string; n: number } | null>(null);
+  const [request, setRequest] = useState<Request>(null);
+  const [reactionRequest, setReactionRequest] = useState<Request>(null);
   const [toast, setToast] = useState<string | null>(null);
   const hostRef = useRef<HTMLDivElement>(null);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
 
   useEffect(() => {
     const s = new Stage(hostRef.current!);
     setStage(s);
-    if (import.meta.env.DEV || new URLSearchParams(location.search).has("debug")) (window as unknown as { __stage: Stage }).__stage = s;
+    if (import.meta.env.DEV || new URLSearchParams(location.search).has('debug')) (window as unknown as { __stage: Stage }).__stage = s;
     return () => s.dispose();
   }, []);
 
-  useEffect(() => writeHash({ mode, molecule, reaction }), [mode, molecule, reaction]);
-
-  // back/forward or a pasted link that only changes the hash
+  // Each successfully shown molecule/reaction becomes a history entry, so Back/Forward walk through them.
+  const firstWrite = useRef(true);
   useEffect(() => {
-    const onHash = () => {
+    const next = hashFor(mode, molecule, reaction);
+    const first = firstWrite.current;
+    firstWrite.current = false;
+    if (window.location.hash === next) return;
+    // normalise the landing URL in place; later changes are real navigation
+    if (first) history.replaceState(null, '', next);
+    else history.pushState(null, '', next);
+  }, [mode, molecule, reaction]);
+
+  // Back/Forward or an edited link. Query state is only committed by the modes once a load succeeds.
+  useEffect(() => {
+    let last = window.location.hash;
+    const onNav = () => {
+      if (window.location.hash === last) return; // popstate + hashchange both fire for one traversal
+      last = window.location.hash;
       const h = readHash();
-      setMode(h.mode);
-      if (h.mode === 'molecule') {
-        setMolecule(h.molecule);
-        setRequest((r) => ({ q: h.molecule, n: (r?.n ?? 0) + 1 }));
-      } else {
-        setReaction(h.reaction);
-        setReactionRequest((r) => ({ q: h.reaction, n: (r?.n ?? 0) + 1 }));
+      const switching = h.mode !== modeRef.current;
+      if (h.mode === 'molecule' && h.molecule) {
+        if (switching) setMolecule(h.molecule); // the mounting mode loads its initial query
+        else setRequest(bump(h.molecule));
+      } else if (h.mode === 'reaction' && h.reaction) {
+        if (switching) setReaction(h.reaction);
+        else setReactionRequest(bump(h.reaction));
       }
+      setMode(h.mode);
     };
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    window.addEventListener('popstate', onNav);
+    window.addEventListener('hashchange', onNav);
+    return () => {
+      window.removeEventListener('popstate', onNav);
+      window.removeEventListener('hashchange', onNav);
+    };
   }, []);
 
   useEffect(() => {
@@ -80,9 +98,11 @@ export default function App() {
 
   const pickFromLibrary = useCallback((name: string) => {
     setLibrary(false);
-    setMolecule(name);
-    setMode('molecule');
-    setRequest((r) => ({ q: name, n: (r?.n ?? 0) + 1 }));
+    if (modeRef.current === 'molecule') setRequest(bump(name));
+    else {
+      setMolecule(name);
+      setMode('molecule');
+    }
   }, []);
 
   return (

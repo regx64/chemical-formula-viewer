@@ -2,7 +2,7 @@ export interface ReactionPreset {
   id: string;
   title: string;
   equation: string;
-  category: 'Combustion' | 'Synthesis' | 'Acid–base' | 'Redox' | 'Decomposition' | 'Equilibrium' | 'Biochemistry' | 'Organic';
+  category: 'Combustion' | 'Synthesis' | 'Acid–base' | 'Precipitation' | 'Redox' | 'Decomposition' | 'Equilibrium' | 'Biochemistry' | 'Organic';
   blurb: string;
   /** approximate literature activation energy, kJ/mol */
   ea?: number;
@@ -78,7 +78,7 @@ export const REACTION_PRESETS: ReactionPreset[] = [
     eaNote: 'Typical kinetic value, depends on particle size',
   },
   { id: 'zinc', title: 'Zinc in acid', equation: 'Zn + HCl -> ZnCl2 + H2', category: 'Redox', blurb: 'A classic lab source of hydrogen gas.' },
-  { id: 'silver', title: 'Silver chloride precipitate', equation: 'AgNO3 + NaCl -> AgCl + NaNO3', category: 'Acid–base', blurb: 'A white curd of AgCl appears instantly — the test for chloride ions.' },
+  { id: 'silver', title: 'Silver chloride precipitate', equation: 'AgNO3 + NaCl -> AgCl + NaNO3', category: 'Precipitation', blurb: 'A white curd of AgCl appears instantly — the test for chloride ions.' },
   {
     id: 'hi',
     title: 'Hydrogen iodide equilibrium',

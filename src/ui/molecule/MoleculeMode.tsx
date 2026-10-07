@@ -58,6 +58,14 @@ export function MoleculeMode({
   const [selection, setSelection] = useState<number[]>([]);
   const [hover, setHover] = useState<{ index: number; x: number; y: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      abortRef.current?.abort();
+    };
+  }, []);
 
   const show = useCallback(
     (r: Resolved, query: string) => {
@@ -109,9 +117,10 @@ export function MoleculeMode({
         networkFailed = true;
       } finally {
         clearTimeout(timer);
-        if (abortRef.current === ctrl) setBusy(false);
+        if (abortRef.current === ctrl && mounted.current) setBusy(false);
       }
-      if (abortRef.current !== ctrl) return;
+      // superseded by a newer query, or the user left this mode while PubChem was answering
+      if (abortRef.current !== ctrl || !mounted.current) return;
       if (online) {
         show(online, q);
         return;
@@ -211,6 +220,7 @@ export function MoleculeMode({
   const dou = result ? degreeOfUnsaturation(result.composition) : null;
   const measurements = mol ? measure(mol, selection) : [];
   const formulaText = result?.displayFormula ?? '';
+  const nameIsFormula = !!result && result.name === formulaText;
 
   const hoverAtom = hover && mol?.atoms[hover.index];
   const hoverNeighbors = hover && mol ? mol.bonds.filter((b) => b.a === hover.index || b.b === hover.index) : [];
@@ -221,7 +231,7 @@ export function MoleculeMode({
         <div className="hud">
           <div>
             <div className="hud-title">{result.sourceLabel.toUpperCase()}</div>
-            <div className="hud-big">{result.name === result.displayFormula ? <Formula text={result.name} /> : result.name}</div>
+            <div className="hud-big">{nameIsFormula ? <Formula text={result.name} /> : result.name}</div>
           </div>
           <div className="hud-meta" style={{ textAlign: 'right' }}>
             <div>{mol!.atoms.length} ATOMS · {covalentBonds} BONDS</div>
@@ -376,8 +386,8 @@ export function MoleculeMode({
                 <span className={`pip ${result.source === 'generated' ? 'generated' : result.source === 'pubchem' ? 'pubchem' : ''}`} />
                 {result.sourceLabel}
               </span>
-              <h2 className="result-name">{result.name === formulaText ? <Formula text={formulaText} /> : result.name}</h2>
-              {result.name !== formulaText && <Formula text={formulaText} className="result-formula" />}
+              <h2 className="result-name">{nameIsFormula ? <Formula text={formulaText} /> : result.name}</h2>
+              {!nameIsFormula && <Formula text={formulaText} className="result-formula" />}
             </div>
             {result.description && <p className="blurb">{result.description}</p>}
             {result.note && <p className="note">{result.note}</p>}

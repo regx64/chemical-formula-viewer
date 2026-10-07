@@ -15,7 +15,8 @@ describe('parseFormula', () => {
     expect(parseFormula('NaCl(aq)').state).toBe('aq');
   });
   it('rejects nonsense', () => {
-    expect(() => parseFormula('Xy2')).toThrow();
+    expect(() => parseFormula('Xy2')).toThrow('Unknown element "Xy"');
+    expect(() => parseFormula('Cx')).toThrow('Unknown element "Cx"');
     expect(() => parseFormula('Ca(OH')).toThrow();
     expect(() => parseFormula('water')).toThrow();
   });

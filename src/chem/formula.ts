@@ -118,10 +118,9 @@ function parseGroup(s: string, raw: string): Composition {
       for (const [el, c] of Object.entries(group)) top[el] = (top[el] ?? 0) + c * n;
     } else if (/[A-Z]/.test(ch)) {
       let sym = ch;
-      if (i + 1 < s.length && /[a-z]/.test(s[i + 1]) && ELEMENT_BY_SYMBOL[ch + s[i + 1]]) {
-        sym = ch + s[i + 1];
-      }
-      if (!ELEMENT_BY_SYMBOL[sym]) throw new FormulaError(`Unknown element "${sym}" in "${raw}"`);
+      const lower = i + 1 < s.length && /[a-z]/.test(s[i + 1]) ? s[i + 1] : '';
+      if (lower && ELEMENT_BY_SYMBOL[ch + lower]) sym = ch + lower;
+      else if (!ELEMENT_BY_SYMBOL[ch]) throw new FormulaError(`Unknown element "${ch + lower}" in "${raw}"`);
       i += sym.length;
       // reject things like "Co" vs "CO" mixups only when the lowercase letter is not an element continuation
       if (i < s.length && /[a-z]/.test(s[i])) {
