@@ -161,6 +161,31 @@ export function hillFormula(comp: Composition, charge = 0): string {
   return body + (charge ? chargeSuffix(charge) : '');
 }
 
+const BEFORE_H = new Set(['B', 'C', 'N', 'P', 'Si', 'As', 'Sb', 'Ge']);
+
+/**
+ * Conventional display formula: Hill order for organics, otherwise electropositive → electronegative
+ * (HCl, H2SO4, NH3, SO4^2-, XeF4, Ca(OH)2).
+ */
+export function conventionalFormula(comp: Composition, charge = 0): string {
+  const els = Object.keys(comp).filter((e) => comp[e] > 0);
+  if (comp.C && comp.H && !(comp.C === 1 && comp.H === 1 && comp.N === 1 && els.length === 3)) return hillFormula(comp, charge);
+  const tail = charge ? chargeSuffix(charge) : '';
+  const part = (e: string, n: number) => e + (n === 1 ? '' : n);
+  if (els.length === 2 && comp.O === 1 && comp.H === 1) return 'OH' + tail;
+  const metals = els.filter((e) => ELEMENT_BY_SYMBOL[e].category.includes('metal') || ELEMENT_BY_SYMBOL[e].category === 'lanthanide');
+  if (metals.length === 1 && els.length === 3 && comp.O && comp.H === comp.O) {
+    const n = comp.O;
+    return part(metals[0], comp[metals[0]]) + (n > 1 ? `(OH)${n}` : 'OH') + tail;
+  }
+  const en = (e: string) => {
+    const v = ELEMENT_BY_SYMBOL[e].en || 4;
+    if (e === 'H' && els.some((x) => BEFORE_H.has(x))) return 3.05;
+    return v;
+  };
+  return els.sort((a, b) => en(a) - en(b)).map((e) => part(e, comp[e])).join('') + tail;
+}
+
 export function compositionKey(comp: Composition, charge = 0): string {
   return hillFormula(comp, charge);
 }

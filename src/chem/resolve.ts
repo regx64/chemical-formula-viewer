@@ -1,7 +1,7 @@
 import { LIBRARY, type LibraryEntry } from '../data/library';
 import { buildFromComposition } from './builder';
 import { embed, orientPrincipal } from './embed';
-import { compositionKey, FormulaError, hillFormula, parseFormula, type Composition } from './formula';
+import { compositionKey, conventionalFormula, FormulaError, hillFormula, parseFormula, totalAtoms, type Composition } from './formula';
 import * as pubchem from './pubchem';
 import { looksLikeSmiles, parseSmiles } from './smiles';
 import { specialStructure } from './special';
@@ -17,6 +17,10 @@ export interface Resolved {
   name: string;
   composition: Composition;
   charge: number;
+  /** formula as it should be shown (user's own notation when they typed one) */
+  displayFormula: string;
+  /** true when the 3D model is a cluster/lattice rather than one formula unit */
+  isCluster: boolean;
   source: StructureSource;
   sourceLabel: string;
   description?: string;
@@ -41,19 +45,17 @@ export function compositionOf(mol: Molecule): { composition: Composition; charge
 interface IndexedEntry {
   entry: LibraryEntry;
   key: string;
+  shown: string;
 }
 
 let index: IndexedEntry[] | null = null;
 function libraryIndex(): IndexedEntry[] {
   if (index) return index;
   index = LIBRARY.map((entry) => {
-    if (entry.formula) {
-      const p = parseFormula(entry.formula);
-      return { entry, key: compositionKey(p.composition, p.charge) };
-    }
-    const graph = entry.smiles ? parseSmiles(entry.smiles) : specialStructure(entry.special!);
-    const { composition, charge } = compositionOf(graph);
-    return { entry, key: compositionKey(composition, charge) };
+    const { composition, charge } = entry.formula
+      ? parseFormula(entry.formula)
+      : compositionOf(entry.smiles ? parseSmiles(entry.smiles) : specialStructure(entry.special!));
+    return { entry, key: compositionKey(composition, charge), shown: (entry.display ?? conventionalFormula(composition, charge)).toLowerCase() };
   });
   return index;
 }
@@ -79,6 +81,8 @@ function fromLibrary(entry: LibraryEntry, alternatives: Alternative[] = []): Res
     name: entry.name,
     composition,
     charge,
+    displayFormula: entry.display ?? conventionalFormula(composition, charge),
+    isCluster: totalAtoms(composition) !== molecule.atoms.length,
     source: entry.special ? 'crystal' : 'library',
     sourceLabel: entry.special ? 'Curated crystal / cluster model' : 'Curated library · geometry optimised in-browser',
     description: entry.blurb,
@@ -105,14 +109,14 @@ export function searchLibrary(query: string, limit = 8): LibraryEntry[] {
   const q = norm(query);
   if (!q) return [];
   const scored = libraryIndex()
-    .map(({ entry, key }) => {
+    .map(({ entry, key, shown }) => {
       const names = [entry.name, ...(entry.aliases ?? [])].map(norm);
       let score = 0;
       if (names.some((n) => n === q)) score = 100;
       else if (names.some((n) => n.startsWith(q))) score = 60;
       else if (names.some((n) => n.includes(q))) score = 30;
-      else if (key.toLowerCase() === q) score = 80;
-      else if (key.toLowerCase().startsWith(q)) score = 20;
+      else if (key.toLowerCase() === q || shown === q) score = 80;
+      else if (key.toLowerCase().startsWith(q) || shown.startsWith(q)) score = 20;
       return { entry, score };
     })
     .filter((x) => x.score > 0)
@@ -168,13 +172,15 @@ export function resolveOffline(query: string, opts: { allowGenerated: boolean })
   const key = compositionKey(parsed.composition, parsed.charge);
   const matches = libraryByFormula(key);
   if (matches.length) {
-    return fromLibrary(
+    const r = fromLibrary(
       matches[0],
       matches.slice(1).map((e) => ({ label: e.name, query: e.name })),
     );
+    return { ...r, displayFormula: parsed.text };
   }
   if (!opts.allowGenerated) return null;
-  return generated(parsed.composition, parsed.charge);
+  const g = generated(parsed.composition, parsed.charge);
+  return isError(g) ? g : { ...g, displayFormula: parsed.text, name: parsed.text };
 }
 
 function isFormula(q: string): boolean {
@@ -196,6 +202,8 @@ function fromSmiles(smiles: string): Resolved {
     name: 'Custom SMILES structure',
     composition,
     charge,
+    displayFormula: conventionalFormula(composition, charge),
+    isCluster: false,
     source: 'smiles',
     sourceLabel: 'Parsed from SMILES · geometry optimised in-browser',
     note: smiles,
@@ -225,9 +233,11 @@ export function generated(composition: Composition, charge: number): Resolved | 
   }
   return {
     molecule: { ...mol, source: 'generated' },
-    name: hillFormula(composition, charge),
+    name: conventionalFormula(composition, charge),
     composition,
     charge,
+    displayFormula: conventionalFormula(composition, charge),
+    isCluster: totalAtoms(composition) !== mol.atoms.length,
     source: 'generated',
     sourceLabel: `${kindLabel} · built from formula`,
     note,
@@ -276,6 +286,8 @@ export async function resolveOnline(query: string, signal?: AbortSignal): Promis
     name: chosen.title,
     composition,
     charge,
+    displayFormula: conventionalFormula(composition, charge),
+    isCluster: false,
     source: 'pubchem',
     sourceLabel: st.needsEmbed ? `PubChem CID ${chosen.cid} · 3D generated in-browser` : `PubChem CID ${chosen.cid} · computed 3D conformer`,
     description: desc,

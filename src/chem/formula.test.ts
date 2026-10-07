@@ -58,3 +58,17 @@ describe('parseSmiles', () => {
     expect(() => parseSmiles('C(C')).toThrow();
   });
 });
+
+import { parseSdf, writeMolfile } from './sdf';
+import { embed } from './embed';
+
+describe('molfile round trip', () => {
+  it('writes and reads back the same graph', () => {
+    const m = embed(parseSmiles('[O-][N+](=O)c1ccccc1'));
+    const back = parseSdf(writeMolfile(m));
+    expect(back.atoms.map((a) => a.el)).toEqual(m.atoms.map((a) => a.el));
+    expect(back.bonds.map((b) => b.order)).toEqual(m.bonds.map((b) => b.order));
+    expect(back.atoms.map((a) => a.charge)).toEqual(m.atoms.map((a) => a.charge));
+    expect(back.atoms[3].x).toBeCloseTo(m.atoms[3].x, 3);
+  });
+});

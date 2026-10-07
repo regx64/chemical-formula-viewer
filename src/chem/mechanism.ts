@@ -164,7 +164,8 @@ export function buildMechanism(reactants: MechanismSpecies[], products: Mechanis
   const P = instances(products, rand, MAX);
 
   // reactant layout (packed) — the reference frame for everything else
-  const rCenters = pack(R.list.map((i) => i.radius), rand, 0.2);
+  // packed so neighbouring molecules touch (radius includes a 0.9 Å skin, so a negative margin = contact)
+  const rCenters = pack(R.list.map((i) => i.radius), rand, -0.9);
   const contact: Vec3[] = [];
   const elements: string[] = [];
   const charges: number[] = [];
@@ -222,7 +223,7 @@ export function buildMechanism(reactants: MechanismSpecies[], products: Mechanis
         for (let j = i + 1; j < pCenters.length; j++) {
           const d = sub(pCenters[j], pCenters[i]);
           const L = length(d) || 1e-3;
-          const min = (P.list[i].radius + P.list[j].radius) * 0.62;
+          const min = (P.list[i].radius + P.list[j].radius) * 0.72;
           if (L < min) {
             const push = scale(L < 1e-2 ? randomUnit(rand) : d, ((min - L) / Math.max(L, 1e-2)) * 0.5);
             pCenters[i] = sub(pCenters[i], push);
@@ -242,12 +243,26 @@ export function buildMechanism(reactants: MechanismSpecies[], products: Mechanis
   const end: Vec3[] = new Array(contact.length);
   const productInstance: number[] = new Array(contact.length);
   const centroid = contact.reduce((acc, p) => add(acc, scale(p, 1 / contact.length)), [0, 0, 0] as Vec3);
+  // products drift apart: relax centres to a clear separation, then push outward
+  const endCenters = pCenters.map((c) => sub(c, centroid));
+  for (let it = 0; it < 200; it++) {
+    for (let i = 0; i < endCenters.length; i++)
+      for (let j = i + 1; j < endCenters.length; j++) {
+        const d = sub(endCenters[j], endCenters[i]);
+        const L = length(d) || 1e-3;
+        const min = P.list[i].radius + P.list[j].radius + 0.6;
+        if (L < min) {
+          const push = scale(L < 1e-2 ? randomUnit(rand) : d, ((min - L) / Math.max(L, 1e-2)) * 0.5);
+          endCenters[i] = sub(endCenters[i], push);
+          endCenters[j] = add(endCenters[j], push);
+        }
+      }
+  }
   pFlat.forEach((x, i) => {
     const r = mapping[i];
     formed[r] = pPos(i);
-    const c = pCenters[x.inst];
-    const out = sub(c, centroid);
-    end[r] = add(pPos(i), scale(out, 0.9));
+    const shift = sub(add(scale(endCenters[x.inst], 1.25), centroid), pCenters[x.inst]);
+    end[r] = add(pPos(i), shift);
     productInstance[r] = x.inst;
   });
 

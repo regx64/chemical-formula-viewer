@@ -69,10 +69,11 @@ export function idealBondLength(a: string, b: string, order: number): number {
   const ra = ELEMENT_BY_SYMBOL[a]?.cov ?? 1.5;
   const rb = ELEMENT_BY_SYMBOL[b]?.cov ?? 1.5;
   let r = ra + rb;
-  // Schomaker–Stevenson style electronegativity shortening for polar bonds
+  // Cordero radii already fit typical bonds; only strongly polar bonds (B–F, S–F …) get a small
+  // Schomaker–Stevenson-style shortening
   const ea = ELEMENT_BY_SYMBOL[a]?.en || 2;
   const eb = ELEMENT_BY_SYMBOL[b]?.en || 2;
-  r -= 0.05 * Math.abs(ea - eb);
+  r -= 0.08 * Math.max(0, Math.abs(ea - eb) - 1);
   if (order === 0) return (ra + rb) * 1.12; // ionic contact
   if (order === 1.5) return r * 0.92;
   if (order === 2) return r * 0.87;

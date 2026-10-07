@@ -42,3 +42,25 @@ export function parseSdf(text: string): Molecule {
 export function isFlat(mol: Molecule): boolean {
   return mol.atoms.every((a) => Math.abs(a.z) < 1e-4);
 }
+
+const pad = (s: string | number, n: number, right = false) => (right ? String(s).padEnd(n) : String(s).padStart(n));
+
+/** Serialise to a V2000 molfile (aromatic bonds written as type 4, ionic contacts omitted). */
+export function writeMolfile(mol: Molecule, title = 'Orbital export'): string {
+  const bonds = mol.bonds.filter((b) => b.order > 0);
+  const lines = [title, '  Orbital 3D', '', `${pad(mol.atoms.length, 3)}${pad(bonds.length, 3)}  0  0  0  0  0  0  0  0999 V2000`];
+  const chargeCode: Record<number, number> = { 3: 1, 2: 2, 1: 3, [-1]: 5, [-2]: 6, [-3]: 7 };
+  for (const a of mol.atoms) {
+    lines.push(
+      `${pad(a.x.toFixed(4), 10)}${pad(a.y.toFixed(4), 10)}${pad(a.z.toFixed(4), 10)} ${pad(a.el, 3, true)} 0${pad(chargeCode[a.charge] ?? 0, 3)}  0  0  0  0  0  0  0  0  0  0`,
+    );
+  }
+  for (const b of bonds) lines.push(`${pad(b.a + 1, 3)}${pad(b.b + 1, 3)}${pad(b.order === 1.5 ? 4 : b.order, 3)}  0  0  0  0`);
+  const charged = mol.atoms.map((a, i) => [i + 1, a.charge]).filter(([, c]) => c);
+  for (let i = 0; i < charged.length; i += 8) {
+    const chunk = charged.slice(i, i + 8);
+    lines.push(`M  CHG${pad(chunk.length, 3)}${chunk.map(([idx, c]) => pad(idx, 4) + pad(c, 4)).join('')}`);
+  }
+  lines.push('M  END', '$$$$');
+  return lines.join('\n');
+}

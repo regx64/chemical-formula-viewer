@@ -64,3 +64,24 @@ describe('embed', () => {
     }
   });
 });
+
+describe('bond lengths', () => {
+  it('match experimental values within a few pm', () => {
+    const len = (smiles: string, a: string, b: string) => {
+      const m = embed(parseSmiles(smiles));
+      const bond = m.bonds.find((x) => [m.atoms[x.a].el, m.atoms[x.b].el].sort().join() === [a, b].sort().join())!;
+      return dist(p(m, bond.a), p(m, bond.b));
+    };
+    expect(len('O', 'O', 'H')).toBeCloseTo(0.96, 1);
+    expect(len('C', 'C', 'H')).toBeCloseTo(1.09, 1);
+    expect(len('CC', 'C', 'C')).toBeCloseTo(1.53, 1);
+    expect(len('C=O', 'C', 'O')).toBeCloseTo(1.21, 1);
+    expect(len('N#N', 'N', 'N')).toBeCloseTo(1.1, 1);
+  });
+  it('embeds large library molecules quickly', () => {
+    const t0 = performance.now();
+    embed(parseSmiles('OCC1OC(OC2(CO)OC(CO)C(O)C2O)C(O)C(O)C1O'));
+    embed(parseSmiles('CC(C)CCCC(C)C1CCC2C1(CCC3C2CC=C4C3(CCC(C4)O)C)C'));
+    expect(performance.now() - t0).toBeLessThan(3000);
+  });
+});

@@ -5,7 +5,8 @@ import { compositionKey, molarMass, type Composition, type Phase } from './formu
 import { buildMechanism, type Mechanism } from './mechanism';
 import { predictProducts } from './predict';
 import { generated, isError, libraryByFormula, libraryMolecule } from './resolve';
-import { estimateActivation, reactionThermo, type ThermoResult } from './thermo';
+import { ELEMENT_BY_SYMBOL } from './elements';
+import { estimateActivation, lookupThermo, reactionThermo, type ThermoResult } from './thermo';
 import type { Molecule } from './types';
 
 export interface ReactionSpecies {
@@ -60,7 +61,13 @@ function structureFor(s: SpeciesInput): Molecule {
 function displayName(s: SpeciesInput): string | undefined {
   if (s.name) return s.name;
   const key = compositionKey(s.parsed.composition, s.parsed.charge);
-  return libraryByFormula(key).find((e) => !e.special)?.name;
+  const lib = libraryByFormula(key).find((e) => !e.special)?.name;
+  if (lib) return lib;
+  const th = lookupThermo(s.parsed.composition, s.parsed.charge);
+  if (th) return th.name[0].toUpperCase() + th.name.slice(1);
+  const els = Object.keys(s.parsed.composition);
+  if (els.length === 1 && !s.parsed.charge) return ELEMENT_BY_SYMBOL[els[0]]?.name;
+  return undefined;
 }
 
 export function findPreset(input: string): ReactionPreset | undefined {

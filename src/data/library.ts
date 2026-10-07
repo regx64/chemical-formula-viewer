@@ -18,6 +18,8 @@ export interface LibraryEntry {
   blurb: string;
   /** formula unit for crystals/clusters whose atom count differs from the formula */
   formula?: string;
+  /** display formula override */
+  display?: string;
   /** preferred isomer for its molecular formula when several entries share one */
   preferred?: boolean;
 }
@@ -42,7 +44,7 @@ export const LIBRARY: LibraryEntry[] = [
   { name: 'Hydrogen bromide', smiles: 'Br', category: 'Essentials', blurb: 'A strong acid in water.', preferred: true },
   { name: 'Hydrogen iodide', smiles: 'I', category: 'Essentials', blurb: 'The strongest of the hydrohalic acids.', preferred: true },
   { name: 'Hydrogen sulfide', smiles: 'S', category: 'Essentials', blurb: 'Smells of rotten eggs; bent like water but with a ~92° angle.', preferred: true },
-  { name: 'Hydrogen cyanide', smiles: 'C#N', category: 'Essentials', blurb: 'Linear, highly toxic and an important industrial feedstock.', preferred: true },
+  { name: 'Hydrogen cyanide', smiles: 'C#N', display: 'HCN', category: 'Essentials', blurb: 'Linear, highly toxic and an important industrial feedstock.', preferred: true },
   { name: 'Nitric oxide', smiles: '[N]=O', category: 'Essentials', blurb: 'A radical signalling molecule in the human body.', preferred: true },
   { name: 'Nitrogen dioxide', smiles: '[O-][N+]=O', category: 'Essentials', blurb: 'Brown, bent radical gas responsible for urban smog colour.', preferred: true },
   { name: 'Nitrous oxide', smiles: '[N-]=[N+]=O', aliases: ['laughing gas'], category: 'Essentials', blurb: 'Linear N–N–O; used as an anaesthetic and propellant.', preferred: true },
@@ -58,19 +60,19 @@ export const LIBRARY: LibraryEntry[] = [
   { name: 'Octane', smiles: 'CCCCCCCC', aliases: ['n-octane'], category: 'Organic', blurb: 'Straight-chain C₈ alkane.', preferred: true },
   { name: 'Isooctane', smiles: 'CC(C)CC(C)(C)C', aliases: ['2,2,4-trimethylpentane'], category: 'Organic', blurb: 'Defines 100 on the octane rating scale.' },
   { name: 'Cyclohexane', smiles: 'C1CCCCC1', category: 'Organic', blurb: 'Adopts a strain-free chair conformation.', preferred: true },
-  { name: 'Methanol', smiles: 'CO', aliases: ['methyl alcohol'], category: 'Organic', blurb: 'Simplest alcohol; toxic and used as a fuel.', preferred: true },
-  { name: 'Ethanol', smiles: 'CCO', aliases: ['ethyl alcohol', 'alcohol', 'C2H5OH'], category: 'Organic', blurb: 'The alcohol in beverages — and an isomer of dimethyl ether.', preferred: true },
+  { name: 'Methanol', smiles: 'CO', display: 'CH3OH', aliases: ['methyl alcohol'], category: 'Organic', blurb: 'Simplest alcohol; toxic and used as a fuel.', preferred: true },
+  { name: 'Ethanol', smiles: 'CCO', display: 'C2H5OH', aliases: ['ethyl alcohol', 'alcohol', 'C2H5OH'], category: 'Organic', blurb: 'The alcohol in beverages — and an isomer of dimethyl ether.', preferred: true },
   { name: 'Dimethyl ether', smiles: 'COC', aliases: ['methoxymethane'], category: 'Organic', blurb: 'Same formula as ethanol (C₂H₆O) but no O–H bond: a gas at room temperature.' },
   { name: 'Formaldehyde', smiles: 'C=O', aliases: ['methanal'], category: 'Organic', blurb: 'Simplest aldehyde; trigonal planar carbon.', preferred: true },
-  { name: 'Formic acid', smiles: 'OC=O', aliases: ['methanoic acid'], category: 'Organic', blurb: 'Found in ant venom.', preferred: true },
-  { name: 'Acetic acid', smiles: 'CC(=O)O', aliases: ['ethanoic acid', 'vinegar', 'CH3COOH'], category: 'Organic', blurb: 'Gives vinegar its sour taste and smell.', preferred: true },
+  { name: 'Formic acid', smiles: 'OC=O', display: 'HCOOH', aliases: ['methanoic acid'], category: 'Organic', blurb: 'Found in ant venom.', preferred: true },
+  { name: 'Acetic acid', smiles: 'CC(=O)O', display: 'CH3COOH', aliases: ['ethanoic acid', 'vinegar', 'CH3COOH'], category: 'Organic', blurb: 'Gives vinegar its sour taste and smell.', preferred: true },
   { name: 'Acetone', smiles: 'CC(C)=O', aliases: ['propanone'], category: 'Organic', blurb: 'Common solvent; simplest ketone.', preferred: true },
   { name: 'Ethyl acetate', smiles: 'CCOC(C)=O', category: 'Organic', blurb: 'Fruity-smelling ester formed from ethanol and acetic acid.', preferred: true },
   { name: 'Methyl acetate', smiles: 'COC(C)=O', category: 'Organic', blurb: 'Volatile ester with a glue-like odour.', preferred: true },
   { name: 'Glycerol', smiles: 'OCC(O)CO', aliases: ['glycerin'], category: 'Organic', blurb: 'Triol backbone of fats and oils.', preferred: true },
   { name: 'Chloroform', smiles: 'ClC(Cl)Cl', aliases: ['trichloromethane'], category: 'Organic', blurb: 'Dense solvent once used as an anaesthetic.', preferred: true },
   { name: 'Carbon tetrachloride', smiles: 'ClC(Cl)(Cl)Cl', category: 'Organic', blurb: 'Perfectly tetrahedral, non-polar solvent.', preferred: true },
-  { name: 'Urea', smiles: 'NC(N)=O', category: 'Organic', blurb: 'First organic compound synthesised from inorganic reagents (Wöhler, 1828).', preferred: true },
+  { name: 'Urea', smiles: 'NC(N)=O', display: 'CO(NH2)2', category: 'Organic', blurb: 'First organic compound synthesised from inorganic reagents (Wöhler, 1828).', preferred: true },
 
   { name: 'Benzene', smiles: 'c1ccccc1', category: 'Aromatic', blurb: 'Six delocalised π electrons make a flat, extra-stable ring.', preferred: true },
   { name: 'Toluene', smiles: 'Cc1ccccc1', aliases: ['methylbenzene'], category: 'Aromatic', blurb: 'Benzene with a methyl group; widely used solvent.', preferred: true },
@@ -102,7 +104,7 @@ export const LIBRARY: LibraryEntry[] = [
   { name: 'Sulfuric acid', smiles: 'OS(=O)(=O)O', category: 'Inorganic', blurb: 'The most-produced industrial chemical in the world.', preferred: true },
   { name: 'Nitric acid', smiles: 'O[N+](=O)[O-]', category: 'Inorganic', blurb: 'Strong oxidising acid used for fertilisers and explosives.', preferred: true },
   { name: 'Phosphoric acid', smiles: 'OP(=O)(O)O', category: 'Inorganic', blurb: 'Gives cola its tang.', preferred: true },
-  { name: 'Carbonic acid', smiles: 'OC(=O)O', category: 'Inorganic', blurb: 'Forms when CO₂ dissolves in water.', preferred: true },
+  { name: 'Carbonic acid', smiles: 'OC(=O)O', display: 'H2CO3', category: 'Inorganic', blurb: 'Forms when CO₂ dissolves in water.', preferred: true },
   { name: 'Ammonium', smiles: '[NH4+]', category: 'Inorganic', blurb: 'Tetrahedral cation formed by protonating ammonia.', preferred: true },
   { name: 'Hydroxide', smiles: '[OH-]', category: 'Inorganic', blurb: 'The base in aqueous chemistry.', preferred: true },
   { name: 'Hydronium', smiles: '[OH3+]', category: 'Inorganic', blurb: 'Trigonal pyramidal; the form H⁺ takes in water.', preferred: true },
