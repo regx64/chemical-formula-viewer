@@ -64,7 +64,9 @@ export function parseSpecies(raw: string): SpeciesInput {
       const text = hillFormula(composition, charge);
       return { text, coefficient, parsed: { text, composition, charge, state }, name: entry.name };
     }
-    throw new EquationError(e instanceof FormulaError ? e.message : `Could not read "${raw}"`);
+    if (/^[a-z]/.test(nameText) || /\s/.test(nameText))
+      throw new EquationError(`“${nameText}” isn’t a formula or a known compound name — try its formula, e.g. C2H5OH.`);
+    throw new EquationError(e instanceof FormulaError ? e.message : `Could not read “${raw}”`);
   }
 }
 

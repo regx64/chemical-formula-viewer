@@ -172,7 +172,7 @@ export function buildReaction(input: string, temperature = 298.15): ReactionOutc
     }
   }
 
-  if (!type) type = classify(reactants, prods, parsed.reversible);
+  if (!type) type = preset?.category ?? classify(reactants, prods, parsed.reversible);
   return {
     ok: true,
     reaction: {
@@ -201,7 +201,8 @@ function classify(r: ReactionSpecies[], p: ReactionSpecies[], reversible: boolea
   if (reversible) return 'Equilibrium';
   if (r.length === 1 && p.length > 1) return 'Decomposition';
   if (r.length > 1 && p.length === 1) return 'Synthesis';
-  if (r.length === 2 && p.length === 2) return 'Exchange';
+  const ionic = (list: ReactionSpecies[]) => list.every((s) => s.molecule.bonds.some((b) => b.order === 0));
+  if (r.length === 2 && p.length === 2 && ionic(r) && ionic(p)) return 'Double displacement';
   return 'Reaction';
 }
 

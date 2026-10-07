@@ -62,11 +62,30 @@ function libraryIndex(): IndexedEntry[] {
 
 const cache = new Map<string, Molecule>();
 
+/** Centre a highly symmetric cluster and tilt it so lattice rows don't hide behind each other. */
+function obliqueView(mol: Molecule): Molecule {
+  const n = mol.atoms.length;
+  const c = mol.atoms.reduce((acc, a) => [acc[0] + a.x / n, acc[1] + a.y / n, acc[2] + a.z / n], [0, 0, 0]);
+  const ry = (-32 * Math.PI) / 180;
+  const rx = (22 * Math.PI) / 180;
+  return {
+    ...mol,
+    atoms: mol.atoms.map((a) => {
+      const x0 = a.x - c[0];
+      const y0 = a.y - c[1];
+      const z0 = a.z - c[2];
+      const x1 = x0 * Math.cos(ry) + z0 * Math.sin(ry);
+      const z1 = -x0 * Math.sin(ry) + z0 * Math.cos(ry);
+      return { ...a, x: x1, y: y0 * Math.cos(rx) - z1 * Math.sin(rx), z: y0 * Math.sin(rx) + z1 * Math.cos(rx) };
+    }),
+  };
+}
+
 export function libraryMolecule(entry: LibraryEntry): Molecule {
   const hit = cache.get(entry.name);
   if (hit) return hit;
   const mol = entry.special
-    ? orientPrincipal(specialStructure(entry.special))
+    ? obliqueView(specialStructure(entry.special))
     : embed(parseSmiles(entry.smiles!), { seed: entry.name.length * 97 });
   const out = { ...mol, name: entry.name, source: 'library' as const };
   cache.set(entry.name, out);

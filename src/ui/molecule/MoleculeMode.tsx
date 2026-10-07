@@ -221,7 +221,7 @@ export function MoleculeMode({
         <div className="hud">
           <div>
             <div className="hud-title">{result.sourceLabel.toUpperCase()}</div>
-            <div className="hud-big">{result.name}</div>
+            <div className="hud-big">{result.name === result.displayFormula ? <Formula text={result.name} /> : result.name}</div>
           </div>
           <div className="hud-meta" style={{ textAlign: 'right' }}>
             <div>{mol!.atoms.length} ATOMS · {covalentBonds} BONDS</div>
@@ -376,8 +376,8 @@ export function MoleculeMode({
                 <span className={`pip ${result.source === 'generated' ? 'generated' : result.source === 'pubchem' ? 'pubchem' : ''}`} />
                 {result.sourceLabel}
               </span>
-              <h2 className="result-name">{result.name}</h2>
-              <Formula text={formulaText} className="result-formula" />
+              <h2 className="result-name">{result.name === formulaText ? <Formula text={formulaText} /> : result.name}</h2>
+              {result.name !== formulaText && <Formula text={formulaText} className="result-formula" />}
             </div>
             {result.description && <p className="blurb">{result.description}</p>}
             {result.note && <p className="note">{result.note}</p>}

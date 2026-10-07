@@ -25,11 +25,13 @@ export function ReactionMode({
   overlay,
   initialQuery,
   onQueryChange,
+  requestedQuery,
 }: {
   stage: Stage | null;
   overlay: HTMLElement | null;
   initialQuery: string;
   onQueryChange: (q: string) => void;
+  requestedQuery: { q: string; n: number } | null;
 }) {
   const [input, setInput] = useState(initialQuery);
   const [reaction, setReaction] = useState<Reaction | null>(null);
@@ -96,6 +98,14 @@ export function ReactionMode({
     ran.current = true;
     run(initialQuery);
   }, [stage, initialQuery, run]);
+
+  const handled = useRef(requestedQuery?.n ?? 0);
+  useEffect(() => {
+    if (!requestedQuery || !stage || requestedQuery.n === handled.current) return;
+    handled.current = requestedQuery.n;
+    setInput(requestedQuery.q);
+    run(requestedQuery.q);
+  }, [requestedQuery, stage, run]);
 
   // drive the mechanism animation from the stage's render loop
   useEffect(() => {

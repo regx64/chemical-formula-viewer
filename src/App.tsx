@@ -42,6 +42,7 @@ export default function App() {
   const [overlay, setOverlay] = useState<HTMLDivElement | null>(null);
   const [library, setLibrary] = useState(false);
   const [request, setRequest] = useState<{ q: string; n: number } | null>(null);
+  const [reactionRequest, setReactionRequest] = useState<{ q: string; n: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -53,6 +54,23 @@ export default function App() {
   }, []);
 
   useEffect(() => writeHash({ mode, molecule, reaction }), [mode, molecule, reaction]);
+
+  // back/forward or a pasted link that only changes the hash
+  useEffect(() => {
+    const onHash = () => {
+      const h = readHash();
+      setMode(h.mode);
+      if (h.mode === 'molecule') {
+        setMolecule(h.molecule);
+        setRequest((r) => ({ q: h.molecule, n: (r?.n ?? 0) + 1 }));
+      } else {
+        setReaction(h.reaction);
+        setReactionRequest((r) => ({ q: h.reaction, n: (r?.n ?? 0) + 1 }));
+      }
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -86,7 +104,7 @@ export default function App() {
           {mode === 'molecule' ? (
             <MoleculeMode stage={stage} overlay={overlay} initialQuery={molecule} onQueryChange={setMolecule} requestedQuery={request} />
           ) : (
-            <ReactionMode stage={stage} overlay={overlay} initialQuery={reaction} onQueryChange={setReaction} />
+            <ReactionMode stage={stage} overlay={overlay} initialQuery={reaction} onQueryChange={setReaction} requestedQuery={reactionRequest} />
           )}
         </aside>
         <section className="stage" aria-label="3D viewport">
