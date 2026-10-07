@@ -61,8 +61,12 @@ export default function App() {
     firstWrite.current = false;
     if (window.location.hash === next) return;
     // normalise the landing URL in place; later changes are real navigation
-    if (first) history.replaceState(null, '', next);
-    else history.pushState(null, '', next);
+    try {
+      if (first) history.replaceState(null, '', next);
+      else history.pushState(null, '', next);
+    } catch {
+      /* sandboxed frames may refuse history access; the app works without URL state */
+    }
   }, [mode, molecule, reaction]);
 
   // Back/Forward or an edited link. Query state is only committed by the modes once a load succeeds.

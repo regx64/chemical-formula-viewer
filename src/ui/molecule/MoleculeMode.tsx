@@ -322,8 +322,8 @@ export function MoleculeMode({
           onClick={() => {
             const el = overlay?.parentElement;
             if (!el) return;
-            if (document.fullscreenElement) void document.exitFullscreen();
-            else void el.requestFullscreen?.();
+            if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+            else void el.requestFullscreen?.().catch(() => {});
           }}
           title="Fullscreen"
           aria-label="Toggle fullscreen"
